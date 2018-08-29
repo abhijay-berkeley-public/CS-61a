@@ -130,7 +130,7 @@ def hailstone(n):
     return len(stones)
 
 # Q6
-quine ='quine =%r;print(quine%%quine)';print(quine%quine)
+quine = 'quine =%r;print(quine%%quine)';print(quine%quine)
 """
 trickery with replacements and character escaping
 """
