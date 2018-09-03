@@ -346,9 +346,10 @@ def swap_strategy(score, opponent_score, margin=8, num_rolls=4):
     # BEGIN PROBLEM 11
 
 
-    if is_swap(score + free_bacon(opponent_score), opponent_score):
+    bacon_points = free_bacon(opponent_score)
+    if is_swap(score + bacon_points, opponent_score):
         # swap is only beneficial when opponent score is greater
-        return 0 if opponent_score > score else num_rolls
+        return 0 if opponent_score > (score + bacon_points) else num_rolls
     else:
         return bacon_strategy(score, opponent_score, margin, num_rolls)
 
