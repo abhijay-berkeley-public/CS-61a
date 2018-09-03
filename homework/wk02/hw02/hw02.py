@@ -26,7 +26,7 @@ def make_adder(n):
     >>> make_adder(1)(2)
     3
     """
-    return 'YOUR EXPRESSION HERE'
+    return lambda k: n + k
 
 # Q2
 def product(n, term):
@@ -50,7 +50,8 @@ def product(n, term):
     >>> check(HW_SOURCE_FILE, 'product', ['Recursion'])
     True
     """
-    "*** YOUR CODE HERE ***"
+
+    return mul([term(i) for i in range(1,n+1)])
 
 def factorial(n):
     """Return n factorial for n >= 0 by calling product.
@@ -63,7 +64,8 @@ def factorial(n):
     >>> check(HW_SOURCE_FILE, 'factorial', ['Recursion', 'For', 'While'])
     True
     """
-    "*** YOUR CODE HERE ***"
+    return product(n, identity)
+
 
 # Q3
 def accumulate(combiner, base, n, term):
@@ -82,7 +84,7 @@ def accumulate(combiner, base, n, term):
     >>> accumulate(mul, 2, 3, square)    # 2 * 1^2 * 2^2 * 3^2
     72
     """
-    "*** YOUR CODE HERE ***"
+    return reduce((lambda x,y: combiner(x,y)), [base] + [term(i) for i in range (0, n)])
 
 def summation_using_accumulate(n, term):
     """Returns the sum of term(1) + ... + term(n). The implementation
@@ -97,7 +99,7 @@ def summation_using_accumulate(n, term):
     ...       ['Recursion', 'For', 'While'])
     True
     """
-    "*** YOUR CODE HERE ***"
+    return accumulate(sum, 0, n, term)
 
 def product_using_accumulate(n, term):
     """An implementation of product using accumulate.
@@ -111,7 +113,8 @@ def product_using_accumulate(n, term):
     ...       ['Recursion', 'For', 'While'])
     True
     """
-    "*** YOUR CODE HERE ***"
+
+    return accumulate(product, 0, n, term)
 
 
 
@@ -141,7 +144,7 @@ def make_repeater(f, n):
     >>> make_repeater(square, 0)(5)
     5
     """
-    "*** YOUR CODE HERE ***"
+    return lambda x: accumulate(compose1, 0, x, f)
 
 # Q5
 def zero(f):
