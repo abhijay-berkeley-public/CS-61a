@@ -50,8 +50,8 @@ def product(n, term):
     >>> check(HW_SOURCE_FILE, 'product', ['Recursion'])
     True
     """
-
-    return mul([term(i) for i in range(1,n+1)])
+    from functools import reduce
+    return reduce(lambda x, y: mul(x,y), [term(i) for i in range(1,n+1)])
 
 def factorial(n):
     """Return n factorial for n >= 0 by calling product.
@@ -84,7 +84,13 @@ def accumulate(combiner, base, n, term):
     >>> accumulate(mul, 2, 3, square)    # 2 * 1^2 * 2^2 * 3^2
     72
     """
-    return reduce((lambda x,y: combiner(x,y)), [base] + [term(i) for i in range (0, n)])
+    from functools import reduce
+    terms = [term(i + 1) for i in range (0,n)]
+    if base != None: terms.insert(0, base)
+    # Need to explicit check for None instead of "if base",
+    # because of cases when 0 is relevant, e.g. 0 factorial
+    # needs to be considered in summations.
+    return reduce(lambda x,y: combiner(x,y), terms)
 
 def summation_using_accumulate(n, term):
     """Returns the sum of term(1) + ... + term(n). The implementation
@@ -99,7 +105,7 @@ def summation_using_accumulate(n, term):
     ...       ['Recursion', 'For', 'While'])
     True
     """
-    return accumulate(sum, 0, n, term)
+    return accumulate(add, None, n, term)
 
 def product_using_accumulate(n, term):
     """An implementation of product using accumulate.
@@ -114,9 +120,7 @@ def product_using_accumulate(n, term):
     True
     """
 
-    return accumulate(product, 0, n, term)
-
-
+    return accumulate(mul, None, n, term)
 
 ###################
 # Extra Questions #
@@ -144,7 +148,7 @@ def make_repeater(f, n):
     >>> make_repeater(square, 0)(5)
     5
     """
-    return lambda x: accumulate(compose1, 0, x, f)
+    return accumulate(compose1, lambda x: x, n, lambda y: f)
 
 # Q5
 def zero(f):
@@ -155,16 +159,17 @@ def successor(n):
 
 def one(f):
     """Church numeral 1: same as successor(zero)"""
-    "*** YOUR CODE HERE ***"
+    return lambda x: f(x)
+
 
 def two(f):
     """Church numeral 2: same as successor(successor(zero))"""
-    "*** YOUR CODE HERE ***"
+    return lambda x: f(one(f)(x))
 
 three = successor(two)
 
 def church_to_int(n):
-    """Convert the Church numeral n to a Python integer.
+    """Convert the Churh numeral n to a Python integer.
 
     >>> church_to_int(zero)
     0
@@ -175,7 +180,7 @@ def church_to_int(n):
     >>> church_to_int(three)
     3
     """
-    "*** YOUR CODE HERE ***"
+    return n(lambda x: x+1)(0)
 
 def add_church(m, n):
     """Return the Church numeral for m + n, for Church numerals m and n.
@@ -183,7 +188,8 @@ def add_church(m, n):
     >>> church_to_int(add_church(two, three))
     5
     """
-    "*** YOUR CODE HERE ***"
+    return make_repeater(successor, church_to_int(m) + church_to_int(n))(zero)
+
 
 def mul_church(m, n):
     """Return the Church numeral for m * n, for Church numerals m and n.
@@ -194,7 +200,7 @@ def mul_church(m, n):
     >>> church_to_int(mul_church(three, four))
     12
     """
-    "*** YOUR CODE HERE ***"
+    return make_repeater(successor, church_to_int(m) * church_to_int(n))(zero)
 
 def pow_church(m, n):
     """Return the Church numeral m ** n, for Church numerals m and n.
@@ -204,4 +210,4 @@ def pow_church(m, n):
     >>> church_to_int(pow_church(three, two))
     9
     """
-    "*** YOUR CODE HERE ***"
+    return make_repeater(successor, church_to_int(m) ** church_to_int(n))(zero)
