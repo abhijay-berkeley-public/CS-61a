@@ -98,7 +98,12 @@ def replace_leaf(t, old, new):
     >>> laerad == yggdrasil # Make sure original tree is unmodified
     True
     """
-    "*** YOUR CODE HERE ***"
+    if is_leaf(t):
+        if label(t) == old:
+            t=tree(new)
+    else:
+        t = [label(t)] + [replace_leaf(b, old, new) for b in branches(t)]
+    return t
 
 # Mobiles
 
@@ -144,12 +149,12 @@ def end(s):
 def weight(size):
     """Construct a weight of some size."""
     assert size > 0
-    "*** YOUR CODE HERE ***"
+    return ['weight', size]
 
 def size(w):
     """Select the size of a weight."""
     assert is_weight(w), 'must call size on a weight'
-    "*** YOUR CODE HERE ***"
+    return w[1]
 
 def is_weight(w):
     """Whether w is a weight."""
@@ -197,7 +202,10 @@ def balanced(m):
     >>> balanced(mobile(side(1, w), side(1, v)))
     False
     """
-    "*** YOUR CODE HERE ***"
+    torque = lambda s: total_weight(end(s)) * length(s)
+    submobiles = [end(s) for s in [left(m), right(m)] if is_mobile(end(s))]
+    return torque(left(m)) == torque(right(m)) \
+        and all([balanced(sm) for sm in submobiles])
 
 def totals_tree(m):
     """Return a tree representing the mobile with its total weight at the root.
@@ -224,7 +232,11 @@ def totals_tree(m):
           3
           2
     """
-    "*** YOUR CODE HERE ***"
+    if not is_mobile(m):
+        return tree(total_weight(m))
+    else:
+        total_side = lambda s: totals_tree(end(s))
+        return [total_weight(m), total_side(left(m)), total_side(right(m))]
 
 # Mutable functions in Python
 
@@ -248,7 +260,11 @@ def make_counter():
     >>> c('b') + c2('b')
     5
     """
-    "*** YOUR CODE HERE ***"
+    count = {}
+    def counter(n):
+        count[n] = count.get(n,0) + 1
+        return count[n]
+    return counter
 
 def make_fib():
     """Returns a function that returns the next Fibonacci number
@@ -269,7 +285,12 @@ def make_fib():
     >>> fib() + sum([fib2() for _ in range(5)])
     12
     """
-    "*** YOUR CODE HERE ***"
+    vals = [1,0]
+    def fib():
+        nonlocal vals
+        vals = [vals[1], sum(vals)]
+        return vals[0]
+    return fib
 
 def make_withdraw(balance, password):
     """Return a password-protected withdraw function.
@@ -299,7 +320,21 @@ def make_withdraw(balance, password):
     >>> type(w(10, 'l33t')) == str
     True
     """
-    "*** YOUR CODE HERE ***"
+    attempts = []
+    def withdraw(amount, pw_attempt):
+        nonlocal attempts
+        if len(attempts) == 3:
+            return 'Your account is locked. Attempts: %s' % (attempts)
+        if pw_attempt == password:
+            nonlocal balance
+            if amount > balance:
+                return 'Insufficient funds'
+            balance = balance - amount
+            return balance
+        else:
+            attempts.append(pw_attempt)
+            return 'Incorrect password'
+    return withdraw
 
 def make_joint(withdraw, old_password, new_password):
     """Return a password-protected withdraw function that has joint access to
@@ -339,7 +374,14 @@ def make_joint(withdraw, old_password, new_password):
     >>> make_joint(w, 'hax0r', 'hello')
     "Your account is locked. Attempts: ['my', 'secret', 'password']"
     """
-    "*** YOUR CODE HERE ***"
+    test_old = withdraw(0, old_password)
+    if type(test_old) is str: return test_old
+    def joint(amount, pw_attempt):
+        if pw_attempt == old_password or pw_attempt == new_password:
+            pw_attempt = old_password
+        return withdraw(amount, pw_attempt)
+    return joint
+
 
 # Generators
 
@@ -377,7 +419,11 @@ def generate_paths(t, x):
     >>> sorted(list(path_to_2))
     [[0, 2], [0, 2, 1, 2]]
     """
-    "*** YOUR CODE HERE ***"
+    if label(t) == x:
+        yield [label(t)]
+    for b in branches(t):
+        for path in generate_paths(b,x):
+            yield [label(t)] + path
 
 ###################
 # Extra Questions #
@@ -400,31 +446,33 @@ def interval(a, b):
 
 def lower_bound(x):
     """Return the lower bound of interval x."""
-    "*** YOUR CODE HERE ***"
+    return x[0]
 
 def upper_bound(x):
     """Return the upper bound of interval x."""
-    "*** YOUR CODE HERE ***"
+    return x[1]
 
 def mul_interval(x, y):
     """Return the interval that contains the product of any value in x and any
     value in y."""
-    p1 = x[0] * y[0]
-    p2 = x[0] * y[1]
-    p3 = x[1] * y[0]
-    p4 = x[1] * y[1]
-    return [min(p1, p2, p3, p4), max(p1, p2, p3, p4)]
+    p1 = lower_bound(x) * lower_bound(y)
+    p2 = lower_bound(x) * upper_bound(y)
+    p3 = upper_bound(x) * lower_bound(y)
+    p4 = upper_bound(x) * upper_bound(y)
+    return interval(min(p1, p2, p3, p4), max(p1, p2, p3, p4))
 
 def sub_interval(x, y):
     """Return the interval that contains the difference between any value in x
     and any value in y."""
-    "*** YOUR CODE HERE ***"
+    lower = lower_bound(x) - upper_bound(y)
+    upper = upper_bound(x) - lower_bound(y)
+    return interval(lower, upper)
 
 def div_interval(x, y):
     """Return the interval that contains the quotient of any value in x divided by
     any value in y. Division is implemented as the multiplication of x by the
     reciprocal of y."""
-    "*** YOUR CODE HERE ***"
+    assert lower_bound(y)*upper_bound(y) >= 0
     reciprocal_y = interval(1/upper_bound(y), 1/lower_bound(y))
     return mul_interval(x, reciprocal_y)
 
@@ -446,12 +494,12 @@ def check_par():
     >>> lower_bound(x) != lower_bound(y) or upper_bound(x) != upper_bound(y)
     True
     """
-    r1 = interval(1, 1) # Replace this line!
-    r2 = interval(1, 1) # Replace this line!
+    r1 = interval(1, 1)
+    r2 = interval(1, 2)
     return r1, r2
 
 def multiple_references_explanation():
-    return """The multiple reference problem..."""
+    return """The multiple reference problem relates to interval operations with itself. For example, an interval divided by itself should only ever yield one. However, with the correct structure of the program, it would yield a much larger interval. Similar results with multiplication and substraction."""
 
 def quadratic(x, a, b, c):
     """Return the interval that is the range of the quadratic defined by
@@ -462,4 +510,4 @@ def quadratic(x, a, b, c):
     >>> str_interval(quadratic(interval(1, 3), 2, -3, 1))
     '0 to 10'
     """
-    "*** YOUR CODE HERE ***"
+

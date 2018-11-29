@@ -9,7 +9,6 @@ as well.
 
 Don't forget: your strategy must be deterministic and pure.
 """
-import sys
 
 from functools import lru_cache
 from hog import free_bacon, roll_dice, is_swap
@@ -20,69 +19,60 @@ from decimal import Decimal as D
 PLAYER_NAME = 'Abhijay' # Change this line!
 K_MAX_DICE = 10
 K_DICE_SIDES = 6 #Assume six sided dice. Lacking more info.
-K_FINAL_SCORE = 100
-K_MAX_RECURSION_DEPTH = 10000
-if sys.getrecursionlimit() < K_MAX_RECURSION_DEPTH:
-    sys.setrecursionlimit(K_MAX_RECURSION_DEPTH)
 
 #Assume 6 sided dice
 #Most of this is taken directly from DeNero's extra lecture...
 
 @memoize
-def ways_to_roll_score(score, num_dice):
-    #DeNero described this in lecture
-    if score < 0: return 0
-    elif score == 0 and num_dice == 0:
-        return 1
-    elif score == 0:
-        return 0
-    else:
-        return sum([ways_to_roll_score(score-i, num_dice-1) for i in range(2, K_DICE_SIDES+1)])
-
-@memoize
-def chance_to_roll_score(score, num_dice):
-    if score == 1:
-        return 1.0 - (pow(K_DICE_SIDES - 1, num_dice) / pow(K_DICE_SIDES, num_dice)) #100% - prob. all not ones
-    return ways_to_roll_score(score, num_dice) / pow(K_DICE_SIDES, num_dice)
+def optimal_num_dice(score, opponent_score):
+    probabilites_of_winning = [
+        aggegrate_winning_probabilites_for_n(score, opponent_score, n)
+        for n in range(1,K_MAX_DICE+1)]
+    highest_probability, best_num_dice = max(
+        [(value,index + 1) for index,value in enumerate(probabilites_of_winning)])
+    return best_num_dice
 
 @memoize
 def aggegrate_winning_probabilites_for_n(score, opponent_score, n):
     #Inspired by DeNero's extra lecture.
-    if n == 0:
-        return winning_probability_for_score(score + free_bacon(opponent_score), opponent_score)
-    else:
-        def score_incremental_winning_prob(s):
-            return chance_to_roll_score(s, n) * winning_probability_for_score(score + s, opponent_score)
-        winning_probs = [score_incremental_winning_prob(s) for s in range(1, (K_DICE_SIDES * n) + 1)]
-        return sum(winning_probs)
 
-@memoize
-def winning_probability_for_score(score, opponent_score):
-    if is_swap(score, opponent_score):
-        score, opponent_score = opponent_score, score
-    if score >= K_FINAL_SCORE:
+    probability_of_winning = 0
+    if n == 0:
+        probability_of_winning = winning_probability_for_score(score + free_bacon(opponent_score), opponent_score)
+    else:
+        def winning_probability_of_score(s):
+            return probability_of_scoring(s, n) * winning_probability_for_score(score + s, opponent_score)
+        winning_probs = [winning_probability_of_score(s) for s in range(1, (K_DICE_SIDES * n) + 1)]
+        probability_of_winning = sum(winning_probs)
+    return probability_of_winning
+
+def number_of_ways_to_score(score, n):
+    #DeNero basically described this in lecture
+    if score < 0: return 0
+    else if score == 0 and n == 0:
         return 1
-    elif opponent_score >= K_FINAL_SCORE:
+    else if score == 0:
         return 0
     else:
-        probability_of_losing = aggegrate_winning_probabilites_for_n(
-                opponent_score, score, opponent_strategy(score, opponent_score))
-        return 1 - probability_of_losing
+        return sum([number_of_ways_to_score(score-i, n-1) for i in range(2, K_DICE_SIDES+1)])
 
-@memoize
-def opponent_strategy(score, opponent_score):
-    #assume he plays perfectly
-    return optimal_num_dice(opponent_score, score)
+def probability_of_scoring(k, n, s):
+    if k == 1:
+        return 1.0 - (pow(s - 1, n) / pow(s, n))
+    return number_of_ways_to_score(k, n, s) / pow(s, n)
 
-@memoize
-def optimal_num_dice(score, opponent_score):
-    probabilites_of_winning = [
-        aggegrate_winning_probabilites_for_n(score, opponent_score, n)
-        for n in range(0,K_MAX_DICE+1)]
-    highest_probability, best_num_dice = max(
-        [(value,index) for index,value in enumerate(probabilites_of_winning)])
-    return best_num_dice
+def probability_of_winning_with_turn_end_scores(score, opponent_score):
+    if should_apply_swap(score, opponent_score):
+        score, opponent_score = opponent_score, score
+    if score >= GOAL_SCORE:
+        return 1
+    elif opponent_score >= GOAL_SCORE:
+        return 0
+    opponent_num_rolls = best_num_dice_to_roll(opponent_score, score)
+    probability_of_opponent_winning = probability_of_winning_by_rolling_n(
+            opponent_score, score, opponent_num_rolls)
+    return 1 - probability_of_opponent_winning
 
-@memoize
+
 def final_strategy(score, opponent_score):
     return optimal_num_dice(score, opponent_score)
